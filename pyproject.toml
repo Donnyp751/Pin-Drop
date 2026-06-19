@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pin-drop"
+version = "0.1.0"
+description = "Generate KiCad bed-of-nails test fixtures (footprint + symbol) from a DUT board, with revision-aware reconcile."
+requires-python = ">=3.9"
+# No runtime dependencies: the modules use only the standard library.
+# pcbnew (for reading boards) and wx (for the plugin GUI) are provided by KiCad.
+dependencies = []
+
+[project.scripts]
+pin-drop = "pin_drop.cli:main"
+
+[tool.setuptools]
+packages = ["pin_drop", "pin_drop.plugin"]

@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.kicad_pcb-bak
+*-backups/
+fp-info-cache
+*.kicad_prl
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.history/
+
+# Local scratch / generated fixture output (not part of the tool)
+/lib/
+
