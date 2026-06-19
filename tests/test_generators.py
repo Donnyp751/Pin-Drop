@@ -117,6 +117,43 @@ class TestSymbol(unittest.TestCase):
         ordered = [p.id for p in sorted(fx.points, key=generate_symbol._natural_key)]
         self.assertEqual(ordered, ["TP1", "TP2", "TP10"])
 
+    def test_power_detection(self):
+        for label in ("GND", "+3.3V", "+5V", "+12V", "3V3", "VSS", "VCC",
+                      "AGND", "Audio_GND"):
+            self.assertTrue(generate_symbol._is_power(label), label)
+        for label in ("TRD0_P", "Audio.LineOutN", "NetJ7_58", "RESET", "VPDATA"):
+            self.assertFalse(generate_symbol._is_power(label), label)
+
+    def test_grouping_clusters_prefixes(self):
+        self.assertEqual(generate_symbol._group_key("TRD0_P"),
+                         generate_symbol._group_key("TRD1_N"))
+        self.assertEqual(generate_symbol._group_key("Audio.LineOutP"),
+                         generate_symbol._group_key("Audio.LineInL"))
+
+    def test_power_ordered_after_signals(self):
+        fx = Fixture(board="X")
+        rows = [("TP1", "DATA"), ("J1-1", "GND"), ("TP2", "TRD0_P"),
+                ("J1-2", "+3.3V")]
+        for pid, nm in rows:
+            fx.add_point(FixturePoint(id=pid, refdes=pid, pad="1", name=nm))
+        signals, power = generate_symbol._order(fx.points)
+        self.assertEqual({p.name for p in power}, {"GND", "+3.3V"})
+        self.assertEqual({p.name for p in signals}, {"DATA", "TRD0_P"})
+
+    def test_body_widens_for_long_names(self):
+        narrow = Fixture(board="X")
+        narrow.add_point(FixturePoint(id="A", refdes="A", pad="1", name="A"))
+        wide = Fixture(board="X")
+        wide.add_point(FixturePoint(id="B", refdes="B", pad="1",
+                                    name="Audio.LineOutNegative_Long"))
+        # The wider symbol must have a larger body rectangle (more negative start x).
+        import re as _re
+        def start_x(text):
+            m = _re.search(r"\(rectangle\s+\(start (-?[\d.]+)", text)
+            return float(m.group(1))
+        self.assertLess(start_x(generate_symbol.build_symbol(wide)),
+                        start_x(generate_symbol.build_symbol(narrow)))
+
 
 if __name__ == "__main__":
     unittest.main()

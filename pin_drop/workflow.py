@@ -35,6 +35,10 @@ def new_fixture(dut: DutData, source_rev: str = "", probe_side: str = SIDE_TOP,
         for dp in dut.pads:
             if dp.kind not in kinds:
                 continue
+            # Boards can repeat a pad number (shields, mechanical pads); the
+            # first occurrence wins — keep one probe per refdes+pad.
+            if fx.point_by_key(dp.refdes, dp.pad) is not None:
+                continue
             nail = (nail_library.DEFAULT_TH_NAIL if dp.kind == KIND_TH_PIN
                     else nail_library.DEFAULT_TP_NAIL)
             p = FixturePoint(

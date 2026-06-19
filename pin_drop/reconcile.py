@@ -105,13 +105,16 @@ def reconcile(fixture: Fixture, dut: DutData,
             moved = had_prev and (abs(dx) > MOVE_EPS_MM or abs(dy) > MOVE_EPS_MM)
             report.matched.append(Matched(point, dp, moved, dx, dy))
 
-    # New candidates: connection-target pads not already annotated.
+    # New candidates: connection-target pads not already annotated. A board can
+    # repeat a pad number (shields/mechanical pads); offer each refdes+pad once.
     taken_ids = {p.id for p in fixture.points}
+    offered_keys = set()
     for dp in dut.pads:
         if dp.kind not in candidate_kinds:
             continue
-        if dp.match_key in annotated_keys:
+        if dp.match_key in annotated_keys or dp.match_key in offered_keys:
             continue
+        offered_keys.add(dp.match_key)
         base = make_point_id(dp.refdes, dp.pad)
         suggested = base
         n = 2
@@ -128,6 +131,8 @@ def apply_new_candidates(fixture: Fixture, candidates: List[NewCandidate]) -> No
     """Add the chosen new candidates to the fixture as included points."""
     for c in candidates:
         dp = c.dut_pad
+        if fixture.point_by_key(dp.refdes, dp.pad) is not None:
+            continue
         nail = (nail_library.DEFAULT_TH_NAIL if dp.kind == KIND_TH_PIN
                 else nail_library.DEFAULT_TP_NAIL)
         point = FixturePoint(
