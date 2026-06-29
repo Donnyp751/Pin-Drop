@@ -4,7 +4,8 @@ Presents one grid row per probe candidate -- existing fixture points plus the
 new candidates surfaced by reconcile -- so the user can tick what to include,
 name it, choose a nail type, and see the reconcile status (matched / moved /
 net-changed / missing / new) at a glance.  Selecting a row focuses the
-corresponding pad on the board canvas.
+corresponding pad on the board canvas and -- when "Sync schematic" is on --
+cross-probes the open schematic so the matching symbol is selected in eeschema.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import pcbnew
 import wx
 import wx.grid
 
+from . import crossprobe, ipc_crossprobe
 from .. import nail_library, workflow
 
 COL_INC, COL_REF, COL_PAD, COL_NET, COL_NAME, COL_NAIL, COL_SIDE, COL_STATUS = range(8)
@@ -60,6 +62,7 @@ class FixtureDialog(wx.Dialog):
         self.ref_path = ref_path
         self.board = board
         self.nail_choices = list(fixture.nail_types.keys()) or [nail_library.DEFAULT_TP_NAIL]
+        self._ipc_sync = ipc_crossprobe.available()
 
         self.rows = self._build_rows()
         self.visible = []
@@ -140,6 +143,14 @@ class FixtureDialog(wx.Dialog):
         self.search = wx.TextCtrl(self)
         self.search.Bind(wx.EVT_TEXT, lambda e: self._populate())
         top.Add(self.search, 1, wx.ALL | wx.EXPAND, 4)
+        # When ticked, selecting a row also cross-probes the open schematic so
+        # the matching symbol is selected in eeschema (best-effort).
+        self.sync_sch = wx.CheckBox(self, label="Sync schematic")
+        self.sync_sch.SetValue(True)
+        self.sync_sch.SetToolTip(
+            "Also select the matching symbol in eeschema when a row is picked "
+            "(requires the schematic to be open).")
+        top.Add(self.sync_sch, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 4)
         root.Add(top, 0, wx.EXPAND)
 
         self.grid = wx.grid.Grid(self)
@@ -248,6 +259,14 @@ class FixtureDialog(wx.Dialog):
             pcbnew.FocusOnItem(target or fp)
         except Exception:
             pass
+        # Best-effort: also surface the part in the open schematic.  Prefer the
+        # IPC API (works when board + schematic share the project-manager
+        # process); fall back to the legacy socket (standalone editors).
+        if getattr(self, "sync_sch", None) and self.sync_sch.GetValue():
+            if self._ipc_sync:
+                ipc_crossprobe.select_part(row.refdes)
+            else:
+                crossprobe.select_in_schematic(row.refdes)
 
     # --- persistence ------------------------------------------------------
     def _commit(self):

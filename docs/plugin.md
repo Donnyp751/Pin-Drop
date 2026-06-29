@@ -57,6 +57,26 @@ Rows that **need review** (net-changed or missing) are highlighted.
 **Actions**
 
 - Selecting a row **focuses the corresponding pad** on the board canvas.
+- **Sync schematic** (checkbox, on by default) — selecting a row also surfaces
+  the matching symbol in the open schematic, letting you confirm *what* a
+  candidate is. It works by selecting the part on the board through KiCad's IPC
+  API, which makes KiCad cross-probe to eeschema itself. It's best-effort: if the
+  setup below isn't in place it quietly does nothing and the board-side focus
+  still works.
+
+  **One-time setup (for project-manager use):**
+  1. Install the API client for KiCad's Python:
+     `python3 -m pip install --user kicad-python`
+     (on Debian/Ubuntu add `--break-system-packages`; `--user` keeps it out of
+     system packages).
+  2. Enable **Preferences → Plugins → "Enable KiCad API server"**, then restart
+     KiCad.
+  3. Open the DUT through the **KiCad project manager** so the board and its
+     `.kicad_sch` share one process.
+
+  If you instead run **pcbnew and eeschema as standalone apps** (separate
+  processes), no install is needed — Pin Drop falls back to KiCad's legacy
+  cross-probe socket (eeschema on `127.0.0.1:4243`) automatically.
 - **Check shown / Uncheck shown** — bulk toggle the Use box on the filtered rows.
 - **Save reference** — write `<board>.fixture.json`.
 - **Generate footprint + symbol** — saves the reference, then prompts for an
