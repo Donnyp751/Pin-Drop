@@ -25,12 +25,28 @@ Preferences -> Plugins -> "Enable KiCad API server" (then restart KiCad).
 
 from __future__ import annotations
 
+import glob
+import os
 import queue
 import threading
 
 _lock = threading.Lock()
 _worker = None          # type: ignore[var-annotated]
 _unavailable = False    # remember a failed import so we don't retry every click
+_expected_board = None  # basename of this instance's .kicad_pcb, for socket matching
+
+
+def configure(board_filename: str) -> None:
+    """Tell the cross-probe which board it belongs to.
+
+    With several KiCad instances open, each runs its own API server on a
+    separate socket (the lock holder on the bare ``api.sock``, the rest on
+    ``api-<pid>.sock``).  We use this board filename to pick -- and verify -- the
+    socket that belongs to *this* instance, so cross-probe never lands in another
+    open project.  Call once with ``pcbnew.GetBoard().GetFileName()``.
+    """
+    global _expected_board
+    _expected_board = os.path.basename(board_filename) if board_filename else None
 
 
 def available() -> bool:
@@ -77,6 +93,41 @@ def select_part(refdes: str) -> None:
         w.submit(refdes)
 
 
+def _candidate_sockets():
+    """API socket addresses to try, most-likely-ours first.
+
+    KiCad names each instance's socket after its process id, except the lock
+    holder which uses the bare ``api.sock``.  This plugin runs *inside* a KiCad
+    process, so our own pid points straight at our socket; the bare socket and
+    any others follow as fallbacks (each verified by board name in ``_connect``).
+    """
+    env = os.environ.get("KICAD_API_SOCKET")
+    if env:  # KiCad told us exactly which socket to use -- trust it.
+        return [env if env.startswith("ipc://") else "ipc://" + env]
+
+    try:
+        from kipy.kicad import _default_socket_path
+        default = _default_socket_path()
+    except Exception:
+        return []
+    bare_fs = default[len("ipc://"):] if default.startswith("ipc://") else default
+    directory = os.path.dirname(bare_fs)
+
+    out = []
+
+    def add(fs_path):
+        if os.path.exists(fs_path):
+            addr = "ipc://" + fs_path
+            if addr not in out:
+                out.append(addr)
+
+    add(os.path.join(directory, "api-{}.sock".format(os.getpid())))
+    add(bare_fs)
+    for s in sorted(glob.glob(os.path.join(directory, "api*.sock"))):
+        add(s)
+    return out
+
+
 def _get_worker():
     global _worker
     with _lock:
@@ -119,12 +170,30 @@ class _Worker(threading.Thread):
                 self._by_ref = {}
 
     def _connect(self) -> None:
+        if self._kicad is not None and self._board is not None:
+            return
         import kipy
-        if self._kicad is None:
-            self._kicad = kipy.KiCad()
-        if self._board is None:
-            self._board = self._kicad.get_board()
+        last_err = None
+        for addr in _candidate_sockets():
+            try:
+                kc = kipy.KiCad(socket_path=addr)
+                board = kc.get_board()
+            except Exception as e:  # wrong/dead socket -- try the next one
+                last_err = e
+                continue
+            if _expected_board:
+                name = ""
+                try:
+                    name = os.path.basename(board.name or "")
+                except Exception:
+                    name = ""
+                if name and name != _expected_board:
+                    continue  # a different instance's board; keep looking
+            self._kicad = kc
+            self._board = board
             self._by_ref = {}
+            return
+        raise RuntimeError("no matching KiCad API socket") from last_err
 
     def _lookup(self, refdes: str):
         if refdes in self._by_ref:

@@ -63,6 +63,12 @@ class FixtureDialog(wx.Dialog):
         self.board = board
         self.nail_choices = list(fixture.nail_types.keys()) or [nail_library.DEFAULT_TP_NAIL]
         self._ipc_sync = ipc_crossprobe.available()
+        if self._ipc_sync and board is not None:
+            # Match our own KiCad instance's API socket (several may be open).
+            try:
+                ipc_crossprobe.configure(board.GetFileName())
+            except Exception:
+                pass
 
         self.rows = self._build_rows()
         self.visible = []
