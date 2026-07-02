@@ -26,6 +26,10 @@ import sys
 _REPO = {repo!r}
 if _REPO not in sys.path:
     sys.path.insert(0, _REPO)
+# Drop any cached pin_drop modules so KiCad's "Refresh Plugins" reloads edits
+# in place (Python otherwise keeps the first-imported version for the session).
+for _m in [m for m in list(sys.modules) if m == "pin_drop" or m.startswith("pin_drop.")]:
+    del sys.modules[_m]
 from pin_drop.plugin import register_plugins
 register_plugins()
 '''
