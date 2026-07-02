@@ -53,23 +53,17 @@ class NailType:
 # --- Default library --------------------------------------------------------
 # These keys are referenced from a fixture's points ("nail": "<key>").
 
-# Keys are referenced by hole size; either a spear- or cup-tip probe presses into
-# the same plated hole, so the size is what the footprint cares about.
-DEFAULT_TP_NAIL = "1.3mm"   # default for test points
-DEFAULT_TH_NAIL = "1.7mm"   # default for through-hole pins
+# Keys are the hole size: a nail is just a plated holder that a point- or cup-tip
+# probe presses into, so the drill size is what the footprint cares about.
+DEFAULT_TP_NAIL = "1.3mm"   # default probe holder for all probes (TPs + TH pins)
+DEFAULT_TH_NAIL = "1.3mm"
 
 DEFAULT_NAILS: Dict[str, NailType] = {
     "1.3mm": NailType(
         key="1.3mm",
-        description="1.3 mm plated probe hole (spear or cup tip)",
+        description="1.3 mm plated probe holder (accepts point or cup probe nails)",
         drill_mm=1.30,
-        pad_mm=2.10,
-    ),
-    "1.7mm": NailType(
-        key="1.7mm",
-        description="1.7 mm plated probe hole (spear or cup tip)",
-        drill_mm=1.70,
-        pad_mm=2.50,
+        pad_mm=1.70,
     ),
     "spring_mount": NailType(
         key="spring_mount",
@@ -79,9 +73,9 @@ DEFAULT_NAILS: Dict[str, NailType] = {
     ),
     "mounting": NailType(
         key="mounting",
-        description="Mounting hole carried from the DUT (M3, non-plated)",
-        drill_mm=3.20,
-        pad_mm=3.20,     # no annular copper
+        description="DUT mechanical mounting hole (5 mm, non-plated)",
+        drill_mm=5.00,
+        pad_mm=7.00,
         plated=False,
     ),
 }

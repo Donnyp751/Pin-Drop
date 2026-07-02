@@ -36,7 +36,7 @@ def _demo_fixture() -> Fixture:
     fx.add_point(FixturePoint(id="TP1", refdes="TP1", pad="1", name="VCC",
                               net="VCC", nail="1.3mm"))
     fx.add_point(FixturePoint(id="J1-3", refdes="J1", pad="3", name="DATA",
-                              net="DATA", nail="1.7mm"))
+                              net="DATA", nail="spring_mount"))
     return fx
 
 
@@ -69,11 +69,11 @@ class TestFootprint(unittest.TestCase):
         text = generate_footprint.build_footprint(fx, dut, name="DEMO Fixture")
         self.assertTrue(_balanced(text))
         self.assertEqual(generate_footprint.build_footprint.last_missing, [])
-        # Probe pad numbered by id, with the cup nail drill.
+        # Probe pad numbered by id, with each point's assigned nail drill.
         self.assertIn('(pad "TP1" thru_hole circle', text)
         self.assertIn('(pad "J1-3" thru_hole circle', text)
-        self.assertIn("(drill 1.7)", text)        # 1.7mm (J1-3)
-        self.assertIn("(drill 1.3)", text)        # 1.3mm (TP1)
+        self.assertIn("(drill 5)", text)          # spring_mount (J1-3)
+        self.assertIn("(drill 1.3)", text)        # 1.3mm holder (TP1)
         # Mounting holes are NPTH.
         self.assertIn("np_thru_hole", text)
         # Outline copied to Edge.Cuts, centered on datum (TP1 at center -> 0,0).

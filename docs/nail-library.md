@@ -5,24 +5,24 @@ tester PCB so a spring probe (pogo pin) receptacle or a solder/press nail can be
 soldered in. Each annotated point is assigned a nail type; the generator stamps
 that geometry at the point's location.
 
-Types are named by **hole size**, because the same hole accepts either a spear- or
-cup-tip probe — the diameter is what the footprint cares about.
+Types are named by **hole size**: a nail is just a plated holder that a point- or
+cup-tip probe presses into, so the drill diameter is what the footprint cares
+about.
 
 ## Built-in types
 
 | key | drill (mm) | pad (mm) | plated | intended use |
 | --- | --- | --- | --- | --- |
-| `1.3mm` | 1.30 | 2.10 | yes | smaller probe hole — **default for test points** |
-| `1.7mm` | 1.70 | 2.50 | yes | larger probe hole — **default for through-hole pins** |
+| `1.3mm` | 1.30 | 1.70 | yes | probe holder for point/cup nails — **default for all probes** |
 | `spring_mount` | 5.00 | 7.00 | yes | spring-loaded alignment guide hole |
-| `mounting` | (from DUT) | — | no | NPTH mounting holes carried over from the DUT |
+| `mounting` | 5.00 | 7.00 | no | NPTH mechanical mounting hole for the DUT |
 
-The defaults map: test-point candidates → `1.3mm`, through-hole-pin candidates →
-`1.7mm` (`DEFAULT_TP_NAIL` / `DEFAULT_TH_NAIL`).
+The defaults map both test-point and through-hole-pin candidates → `1.3mm`
+(`DEFAULT_TP_NAIL` / `DEFAULT_TH_NAIL`).
 
 `mounting` is special: actual mounting holes are detected on the DUT (as NPTH
-pads or `MountingHole*` footprints) and reproduced with their real drill size, so
-you don't assign this type by hand.
+pads or `MountingHole*` footprints) and reproduced with their real drill size (a
+7 mm pad ring around it), so you don't assign this type by hand.
 
 ## Fields
 

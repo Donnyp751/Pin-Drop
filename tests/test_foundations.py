@@ -54,25 +54,34 @@ class TestNailLibrary(unittest.TestCase):
     def test_defaults_present(self):
         lib = nail_library.default_library()
         self.assertIn("1.3mm", lib)
-        self.assertIn("1.7mm", lib)
         self.assertIn("spring_mount", lib)
         self.assertIn("mounting", lib)
+
+    def test_probe_holder_is_1p3_drill_1p7_pad(self):
+        nail = nail_library.DEFAULT_NAILS["1.3mm"]
+        self.assertTrue(nail.plated)
+        self.assertEqual((nail.drill_mm, nail.pad_mm), (1.30, 1.70))
 
     def test_spring_mount_is_large_plated_hole(self):
         nail = nail_library.DEFAULT_NAILS["spring_mount"]
         self.assertTrue(nail.plated)
         self.assertEqual((nail.drill_mm, nail.pad_mm), (5.0, 7.0))
-        self.assertGreater(nail.drill_mm, nail_library.DEFAULT_NAILS["1.7mm"].drill_mm)
+        self.assertGreater(nail.drill_mm, nail_library.DEFAULT_NAILS["1.3mm"].drill_mm)
+
+    def test_mounting_is_5_7_npth(self):
+        nail = nail_library.DEFAULT_NAILS["mounting"]
+        self.assertFalse(nail.plated)
+        self.assertEqual((nail.drill_mm, nail.pad_mm), (5.0, 7.0))
 
     def test_annular_ring(self):
         nail = nail_library.DEFAULT_NAILS["1.3mm"]
-        self.assertAlmostEqual(nail.annular_ring_mm, (2.10 - 1.30) / 2.0)
+        self.assertAlmostEqual(nail.annular_ring_mm, (1.70 - 1.30) / 2.0)
 
     def test_roundtrip(self):
         lib = nail_library.default_library()
         data = nail_library.library_to_dict(lib)
         back = nail_library.library_from_dict(data)
-        self.assertEqual(back["1.7mm"].drill_mm, lib["1.7mm"].drill_mm)
+        self.assertEqual(back["1.3mm"].drill_mm, lib["1.3mm"].drill_mm)
         self.assertFalse(back["mounting"].plated)
 
 
@@ -107,7 +116,7 @@ class TestFixtureModel(unittest.TestCase):
             id="TP25", refdes="TP25", pad="1", name="VPD", net="VPD", nail="1.3mm"
         ))
         fx.add_point(FixturePoint(
-            id="J5-7", refdes="J5", pad="7", name="TRD1_P", net="TRD1_P", nail="1.7mm"
+            id="J5-7", refdes="J5", pad="7", name="TRD1_P", net="TRD1_P", nail="spring_mount"
         ))
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "demo.fixture.json")
@@ -115,7 +124,7 @@ class TestFixtureModel(unittest.TestCase):
             back = Fixture.load(path)
         self.assertEqual(back.board, fx.board)
         self.assertEqual(len(back.points), 2)
-        self.assertEqual(back.point_by_id("J5-7").nail, "1.7mm")
+        self.assertEqual(back.point_by_id("J5-7").nail, "spring_mount")
         self.assertEqual(back.point_by_id("TP25").net, "VPD")
         # xy is runtime-only, not persisted.
         self.assertIsNone(back.point_by_id("TP25").x_mm)

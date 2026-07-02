@@ -161,8 +161,9 @@ def build_footprint(fixture: Fixture, dut: DutData, name: str = "") -> str:
     for i, hole in enumerate(dut.mounting_holes):
         lx, ly = _transform(hole.x_mm, hole.y_mm, cx, cy, fixture.probe_side)
         drill = hole.drill_mm or mount_nail.drill_mm
+        pad = max(mount_nail.pad_mm, drill)   # honor the mounting nail's ring
         npth = nail_library.NailType(
-            key="mounting", description="", drill_mm=drill, pad_mm=drill, plated=False)
+            key="mounting", description="", drill_mm=drill, pad_mm=pad, plated=False)
         node = _pad_node("", lx, ly, npth, f"{name}-mh{i}")
         fp.append(node)
 

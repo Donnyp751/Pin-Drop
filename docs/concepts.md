@@ -13,7 +13,7 @@ Each pad is **classified** to drive sensible defaults:
 | Kind | How it's detected | Default nail |
 | --- | --- | --- |
 | `testpoint` | reference starts with `TP`, or a single-pad plated through-hole part | `1.3mm` |
-| `th_pin` | plated through-hole pad of a multi-pad part (connectors, terminal blocks) | `1.7mm` |
+| `th_pin` | plated through-hole pad of a multi-pad part (connectors, terminal blocks) | `1.3mm` |
 | `smd` | surface-mount pad | (not offered by default) |
 | `mounting` | non-plated hole (NPTH) | carried over as a hole, not a probe |
 

@@ -77,7 +77,7 @@ class TestReconcile(unittest.TestCase):
         rep = reconcile.reconcile(self.fx, self.dut)
         reconcile.apply_new_candidates(self.fx, rep.new)
         self.assertIsNotNone(self.fx.point_by_key("TP5", "1"))
-        # New TH-pin candidates default to 1.7mm; TP5 is a testpoint -> 1.3mm.
+        # All probes default to the 1.3mm holder now (point/cup share one size).
         self.assertEqual(self.fx.point_by_key("TP5", "1").nail, "1.3mm")
 
         reconcile.accept_net_changes(rep)

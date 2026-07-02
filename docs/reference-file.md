@@ -29,11 +29,11 @@ A map of `key → nail definition`. These are the exact specs used to generate t
 fixture, copied in for reproducibility. Each entry:
 
 ```jsonc
-"1.7mm": {
-  "key": "1.7mm",
-  "description": "1.7 mm plated probe hole (spear or cup tip)",
-  "drill_mm": 1.7,
-  "pad_mm": 2.5,
+"1.3mm": {
+  "key": "1.3mm",
+  "description": "1.3 mm plated probe holder (accepts point or cup probe nails)",
+  "drill_mm": 1.3,
+  "pad_mm": 1.7,
   "shape": "circle",   // "circle" | "rect"
   "plated": true,      // false = NPTH
   "part_number": "",
@@ -54,7 +54,7 @@ One entry per probe target:
   "pad": "7",
   "name": "TRD1_P",    // symbol pin label
   "net": "TRD1_P",     // verification check; flagged if the live net differs
-  "nail": "1.7mm",     // key into nail_types
+  "nail": "1.3mm",     // key into nail_types
   "side": "top",       // per-point side override
   "include": true,     // generate a pad/pin for this point?
   "notes": "",
