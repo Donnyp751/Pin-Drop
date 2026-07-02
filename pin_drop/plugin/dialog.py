@@ -61,7 +61,11 @@ class FixtureDialog(wx.Dialog):
         self.report = report
         self.ref_path = ref_path
         self.board = board
-        self.nail_choices = list(fixture.nail_types.keys()) or [nail_library.DEFAULT_TP_NAIL]
+        # Offer the current library first, then any legacy types this fixture
+        # still carries (so old reference files can be migrated in place).
+        _default_keys = list(nail_library.DEFAULT_NAILS.keys())
+        _extra = [k for k in fixture.nail_types.keys() if k not in _default_keys]
+        self.nail_choices = _default_keys + _extra
         self._ipc_sync = ipc_crossprobe.available()
         if self._ipc_sync and board is not None:
             # Match our own KiCad instance's API socket (several may be open).
