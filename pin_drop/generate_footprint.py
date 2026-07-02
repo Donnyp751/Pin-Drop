@@ -160,8 +160,11 @@ def build_footprint(fixture: Fixture, dut: DutData, name: str = "") -> str:
     mount_nail = nails.get("mounting") or nail_library.DEFAULT_NAILS["mounting"]
     for i, hole in enumerate(dut.mounting_holes):
         lx, ly = _transform(hole.x_mm, hole.y_mm, cx, cy, fixture.probe_side)
-        drill = hole.drill_mm or mount_nail.drill_mm
-        pad = max(mount_nail.pad_mm, drill)   # honor the mounting nail's ring
+        # Each DUT mounting-hole location gets the mounting nail's own geometry
+        # (e.g. a 5 mm hole for a cone-head alignment pin), not the DUT's hole
+        # size -- the position is what we take from the DUT.
+        drill = mount_nail.drill_mm
+        pad = max(mount_nail.pad_mm, drill)
         npth = nail_library.NailType(
             key="mounting", description="", drill_mm=drill, pad_mm=pad, plated=False)
         node = _pad_node("", lx, ly, npth, f"{name}-mh{i}")

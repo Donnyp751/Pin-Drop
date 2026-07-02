@@ -34,9 +34,9 @@ VIEWS = [VIEW_ALL, VIEW_ANNOTATED, VIEW_NEW, VIEW_REVIEW]
 
 
 class _Row:
-    __slots__ = ("point", "candidate", "refdes", "pad", "kind", "live_net",
-                 "name", "nail", "side", "include", "status", "net_changed",
-                 "missing", "live_xy")
+    __slots__ = ("point", "candidate", "mount", "refdes", "pad", "kind",
+                 "live_net", "name", "nail", "side", "include", "status",
+                 "net_changed", "missing", "live_xy")
 
     def __init__(self, **kw):
         for k in self.__slots__:
@@ -45,6 +45,10 @@ class _Row:
     @property
     def is_new(self):
         return self.candidate is not None
+
+    @property
+    def is_mount(self):
+        return self.mount is not None
 
     @property
     def needs_review(self):
@@ -119,6 +123,21 @@ class FixtureDialog(wx.Dialog):
                       else nail_library.DEFAULT_TP_NAIL),
                 side=self.fixture.probe_side, include=False, status="new",
                 net_changed=False, missing=False, live_xy=(dp.x_mm, dp.y_mm)))
+
+        # Read-only rows for the mounting holes auto-detected on the DUT. These
+        # aren't probe points -- they're captured from the board every generate
+        # -- but are shown so their coverage can be verified at a glance.
+        mnail = self.fixture.nail_types.get("mounting") \
+            or nail_library.DEFAULT_NAILS["mounting"]
+        for i, hole in enumerate(self.dut.mounting_holes, 1):
+            rows.append(_Row(
+                point=None, candidate=None, mount=hole,
+                refdes=hole.refdes or f"MH{i}", pad="",
+                kind="mounting", live_net="", name="mounting hole",
+                nail="mounting", side=self.fixture.probe_side, include=True,
+                status=f"auto · Ø{mnail.drill_mm:g} mm NPTH",
+                net_changed=False, missing=False,
+                live_xy=(hole.x_mm, hole.y_mm)))
         return rows
 
     def _filtered(self):
@@ -173,7 +192,11 @@ class FixtureDialog(wx.Dialog):
         self.grid.Bind(wx.grid.EVT_GRID_SELECT_CELL, self._on_select)
         root.Add(self.grid, 1, wx.EXPAND | wx.ALL, 4)
 
-        self.summary = wx.StaticText(self, label=self.report.summary())
+        n_mounts = len(self.dut.mounting_holes)
+        summary = self.report.summary()
+        if n_mounts:
+            summary += f"; {n_mounts} mounting hole(s)"
+        self.summary = wx.StaticText(self, label=summary)
         root.Add(self.summary, 0, wx.ALL, 4)
 
         btns = wx.BoxSizer(wx.HORIZONTAL)
@@ -221,7 +244,12 @@ class FixtureDialog(wx.Dialog):
         g.SetCellValue(r, COL_STATUS, str(row.status))
         for c in (COL_REF, COL_PAD, COL_NET, COL_STATUS):
             g.SetReadOnly(r, c, True)
-        if row.needs_review:
+        if row.is_mount:
+            # Auto-detected mounting holes are informational and not editable.
+            for c in range(len(COLS)):
+                g.SetReadOnly(r, c, True)
+                g.SetCellBackgroundColour(r, c, wx.Colour(232, 232, 232))
+        elif row.needs_review:
             for c in range(len(COLS)):
                 g.SetCellBackgroundColour(r, c, wx.Colour(255, 235, 200))
 
@@ -231,6 +259,8 @@ class FixtureDialog(wx.Dialog):
         if r >= len(self.visible):
             return
         row = self.visible[r]
+        if row.is_mount:
+            return
         val = self.grid.GetCellValue(r, c)
         if c == COL_INC:
             row.include = val in ("1", "yes", "true", "True")
@@ -250,12 +280,14 @@ class FixtureDialog(wx.Dialog):
 
     def _bulk_check(self, state):
         for r, row in enumerate(self.visible):
+            if row.is_mount:
+                continue
             row.include = state
             self.grid.SetCellValue(r, COL_INC, "1" if state else "")
         self.grid.ForceRefresh()
 
     def _focus(self, row):
-        if not self.board:
+        if not self.board or row.is_mount:
             return
         try:
             fp = self.board.FindFootprintByReference(row.refdes)
@@ -281,6 +313,8 @@ class FixtureDialog(wx.Dialog):
     # --- persistence ------------------------------------------------------
     def _commit(self):
         for row in self.rows:
+            if row.is_mount:
+                continue  # auto-detected, never persisted as a probe point
             if row.point is not None:
                 row.point.include = row.include
                 row.point.name = row.name

@@ -80,6 +80,15 @@ class TestFootprint(unittest.TestCase):
         self.assertIn('(layer "Edge.Cuts")', text)
         self.assertIn("(at 0 0)", text)
 
+    def test_mounting_holes_use_mount_nail_geometry(self):
+        dut, fx = _demo_dut(), _demo_fixture()   # DUT holes are 3.2 mm
+        text = generate_footprint.build_footprint(fx, dut)
+        # The mounting nail (5/7 NPTH) drives the hole, not the DUT's 3.2 mm.
+        self.assertIn("np_thru_hole", text)
+        self.assertIn("(drill 5)", text)
+        self.assertIn("(size 7 7)", text)
+        self.assertNotIn("(drill 3.2)", text)
+
     def test_missing_pad_reported(self):
         dut = _demo_dut()
         fx = _demo_fixture()

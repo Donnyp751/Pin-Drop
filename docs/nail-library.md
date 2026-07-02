@@ -20,9 +20,11 @@ about.
 The defaults map both test-point and through-hole-pin candidates → `1.3mm`
 (`DEFAULT_TP_NAIL` / `DEFAULT_TH_NAIL`).
 
-`mounting` is special: actual mounting holes are detected on the DUT (as NPTH
-pads or `MountingHole*` footprints) and reproduced with their real drill size (a
-7 mm pad ring around it), so you don't assign this type by hand.
+`mounting` is special: mounting holes are detected on the DUT (non-plated holes
+≥ 2 mm, or `MountingHole*` footprints) and reproduced **at the mounting nail's
+own geometry** (5 mm drill / 7 mm pad) at each DUT hole *location* — sized for a
+cone-head alignment pin, not the DUT's own hole. You don't assign this type by
+hand; the plugin lists detected holes as read-only rows so you can verify them.
 
 ## Fields
 

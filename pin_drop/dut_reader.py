@@ -20,6 +20,10 @@ KIND_TH_PIN = "th_pin"         # plated through-hole pin of a multi-pad part
 KIND_SMD = "smd"               # surface-mount pad
 KIND_MOUNTING = "mounting"     # non-plated hole (mounting / mechanical)
 
+# Non-plated holes smaller than this are tooling/peg/via holes (switch pegs,
+# fiducials), not board mounting holes, so they are not captured as mounts.
+MOUNTING_MIN_DRILL_MM = 2.0
+
 
 @dataclass
 class DutPad:
@@ -127,11 +131,15 @@ def read_board(board, board_name: str = "") -> DutData:
             kind = _classify(refdes, pad_count, is_pth, is_npth, is_smd, has_top)
 
             if is_npth:
-                # Treat as a mechanical hole, not a connection target.
-                data.mounting_holes.append(MountingHole(
-                    x_mm=mm(pos.x), y_mm=mm(pos.y),
-                    drill_mm=mm(p.GetDrillSizeX()), refdes=refdes,
-                ))
+                # Non-plated holes are mechanical, never connection targets.
+                # Only holes big enough to be real board mounts are captured;
+                # small tooling/peg/via holes are ignored.
+                hole_drill = mm(p.GetDrillSizeX())
+                if hole_drill >= MOUNTING_MIN_DRILL_MM:
+                    data.mounting_holes.append(MountingHole(
+                        x_mm=mm(pos.x), y_mm=mm(pos.y),
+                        drill_mm=hole_drill, refdes=refdes,
+                    ))
                 continue
 
             data.pads.append(DutPad(
