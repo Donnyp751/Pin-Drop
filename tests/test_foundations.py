@@ -129,6 +129,15 @@ class TestFixtureModel(unittest.TestCase):
         # xy is runtime-only, not persisted.
         self.assertIsNone(back.point_by_id("TP25").x_mm)
 
+    def test_mounting_excludes_roundtrip(self):
+        fx = Fixture(board="X")
+        fx.mounting_excludes = ["12.00,34.00", "56.00,78.00"]
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "demo.fixture.json")
+            fx.save(path)
+            back = Fixture.load(path)
+        self.assertEqual(back.mounting_excludes, ["12.00,34.00", "56.00,78.00"])
+
 
 if __name__ == "__main__":
     unittest.main()

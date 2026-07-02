@@ -89,6 +89,13 @@ class TestFootprint(unittest.TestCase):
         self.assertIn("(size 7 7)", text)
         self.assertNotIn("(drill 3.2)", text)
 
+    def test_mounting_exclude_skips_hole(self):
+        dut, fx = _demo_dut(), _demo_fixture()
+        base = generate_footprint.build_footprint(fx, dut).count("np_thru_hole")
+        fx.mounting_excludes = [dut.mounting_holes[0].key]
+        after = generate_footprint.build_footprint(fx, dut).count("np_thru_hole")
+        self.assertEqual(after, base - 1)
+
     def test_missing_pad_reported(self):
         dut = _demo_dut()
         fx = _demo_fixture()

@@ -65,6 +65,11 @@ class MountingHole:
     drill_mm: float
     refdes: str = ""
 
+    @property
+    def key(self) -> str:
+        """Stable position key used to remember a disabled hole across revisions."""
+        return f"{self.x_mm:.2f},{self.y_mm:.2f}"
+
 
 @dataclass
 class DutData:

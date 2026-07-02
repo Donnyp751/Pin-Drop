@@ -158,7 +158,10 @@ def build_footprint(fixture: Fixture, dut: DutData, name: str = "") -> str:
 
     # Mounting holes from the DUT (NPTH).
     mount_nail = nails.get("mounting") or nail_library.DEFAULT_NAILS["mounting"]
+    excluded = set(getattr(fixture, "mounting_excludes", ()))
     for i, hole in enumerate(dut.mounting_holes):
+        if hole.key in excluded:
+            continue
         lx, ly = _transform(hole.x_mm, hole.y_mm, cx, cy, fixture.probe_side)
         # Each DUT mounting-hole location gets the mounting nail's own geometry
         # (e.g. a 5 mm hole for a cone-head alignment pin), not the DUT's hole

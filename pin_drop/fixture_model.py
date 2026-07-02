@@ -112,6 +112,9 @@ class Fixture:
         default_factory=nail_library.default_library
     )
     points: List[FixturePoint] = field(default_factory=list)
+    # Position keys of auto-detected DUT mounting holes the user has disabled,
+    # so a disabled hole stays disabled across revisions (see MountingHole.key).
+    mounting_excludes: List[str] = field(default_factory=list)
 
     # --- lookups ----------------------------------------------------------
     def point_by_key(self, refdes: str, pad: str) -> Optional[FixturePoint]:
@@ -157,6 +160,7 @@ class Fixture:
             "origin": self.origin,
             "nail_types": nail_library.library_to_dict(self.nail_types),
             "points": [p.to_dict() for p in self.points],
+            "mounting_excludes": list(self.mounting_excludes),
         }
 
     @classmethod
@@ -175,6 +179,7 @@ class Fixture:
             schema=data.get("schema", SCHEMA_VERSION),
             nail_types=nails,
             points=[FixturePoint.from_dict(p) for p in data.get("points", [])],
+            mounting_excludes=list(data.get("mounting_excludes", [])),
         )
         return fixture
 

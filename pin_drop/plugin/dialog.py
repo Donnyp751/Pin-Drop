@@ -129,12 +129,14 @@ class FixtureDialog(wx.Dialog):
         # -- but are shown so their coverage can be verified at a glance.
         mnail = self.fixture.nail_types.get("mounting") \
             or nail_library.DEFAULT_NAILS["mounting"]
+        excluded = set(self.fixture.mounting_excludes)
         for i, hole in enumerate(self.dut.mounting_holes, 1):
             rows.append(_Row(
                 point=None, candidate=None, mount=hole,
                 refdes=hole.refdes or f"MH{i}", pad="",
                 kind="mounting", live_net="", name="mounting hole",
-                nail="mounting", side=self.fixture.probe_side, include=True,
+                nail="mounting", side=self.fixture.probe_side,
+                include=hole.key not in excluded,
                 status=f"auto · Ø{mnail.drill_mm:g} mm NPTH",
                 net_changed=False, missing=False,
                 live_xy=(hole.x_mm, hole.y_mm)))
@@ -245,10 +247,12 @@ class FixtureDialog(wx.Dialog):
         for c in (COL_REF, COL_PAD, COL_NET, COL_STATUS):
             g.SetReadOnly(r, c, True)
         if row.is_mount:
-            # Auto-detected mounting holes are informational and not editable.
+            # Auto-detected mounting hole: only the Use box is editable, so a
+            # hole can be disabled; the rest is informational.  No colour
+            # override, so the text stays readable on dark themes.
             for c in range(len(COLS)):
-                g.SetReadOnly(r, c, True)
-                g.SetCellBackgroundColour(r, c, wx.Colour(232, 232, 232))
+                if c != COL_INC:
+                    g.SetReadOnly(r, c, True)
         elif row.needs_review:
             for c in range(len(COLS)):
                 g.SetCellBackgroundColour(r, c, wx.Colour(255, 235, 200))
@@ -259,11 +263,15 @@ class FixtureDialog(wx.Dialog):
         if r >= len(self.visible):
             return
         row = self.visible[r]
-        if row.is_mount:
-            return
         val = self.grid.GetCellValue(r, c)
+        checked = val in ("1", "yes", "true", "True")
+        if row.is_mount:
+            if c == COL_INC:
+                row.include = checked   # unchecking disables this mounting hole
+            evt.Skip()
+            return
         if c == COL_INC:
-            row.include = val in ("1", "yes", "true", "True")
+            row.include = checked
         elif c == COL_NAME:
             row.name = val
         elif c == COL_NAIL:
@@ -280,8 +288,6 @@ class FixtureDialog(wx.Dialog):
 
     def _bulk_check(self, state):
         for r, row in enumerate(self.visible):
-            if row.is_mount:
-                continue
             row.include = state
             self.grid.SetCellValue(r, COL_INC, "1" if state else "")
         self.grid.ForceRefresh()
@@ -312,6 +318,11 @@ class FixtureDialog(wx.Dialog):
 
     # --- persistence ------------------------------------------------------
     def _commit(self):
+        # Rebuild the disabled-mounting-hole list from the (un)checked rows.
+        self.fixture.mounting_excludes = [
+            row.mount.key for row in self.rows
+            if row.is_mount and not row.include
+        ]
         for row in self.rows:
             if row.is_mount:
                 continue  # auto-detected, never persisted as a probe point
